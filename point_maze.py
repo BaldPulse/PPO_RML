@@ -147,6 +147,8 @@ class PointMazeEnv(SapienEnv):
                     r_dir[x,y,:] = [x-curx, y-cury]
         r += (r==0) * -10
         self.rmap = r_dir
+        self.rmap_static = r
+        self.lastval = 0
 
         super().__init__(control_freq=1, timestep=0.005)
         self.n = len(self.map)
@@ -203,10 +205,13 @@ class PointMazeEnv(SapienEnv):
         done = np.sqrt((obs[0] ** 2 + obs[1] ** 2)) < 0.5
         reward = 0
         if(np.abs(obs[0])<1.2 and np.abs(obs[1])<0.6):
-            reward = (-qpos[0])*obs[3] + (-qpos[1])*obs[4]
+            curval = -np.sqrt((obs[0] ** 2 + obs[1] ** 2))
+            if(self.lastval>50):
+                self.lastval = 0
         else:
             l = 1.2
             def get_cur_xy(curqpos):
+                # print(curqpos)
                 x = int(np.floor(-curqpos[0]/l + 6))
                 y = int(np.floor(-curqpos[1]/l + 7.5))
                 return x, y
@@ -216,13 +221,19 @@ class PointMazeEnv(SapienEnv):
                 ypos = -(y-7.5)*l+0.3
                 return xpos, ypos
             
-
-            x,y = get_cur_xy(qpos)
-            correct_dir = self.rmap[x,y]
-            tx = x + correct_dir[0]
-            ty = y + correct_dir[1]
-            xpos, ypos = get_cur_loc(tx, ty)
-            reward = (xpos-qpos[0])*obs[3] + (ypos-qpos[1])*obs[4] #TODO
+            x,y = get_cur_xy(obs[0:2])
+            curval = self.rmap_static[x,y]
+        if curval < self.lastval:
+            reward = -10
+        elif curval > self.lastval:
+            reward = 3
+        self.lastval = curval
+            # correct_dir = self.rmap[x,y]
+            # tx = x + correct_dir[0]
+            # ty = y + correct_dir[1]
+            # xpos, ypos = get_cur_loc(tx, ty)
+            # reward = (xpos-qpos[0])*obs[3] + (ypos-qpos[1])*obs[4] #TODO
+            # print(x,y, xpos, ypos, obs, reward)
 
         return obs, reward, done, {}
 

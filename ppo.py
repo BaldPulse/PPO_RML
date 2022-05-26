@@ -358,7 +358,7 @@ gym.register(
 )
 
 def evaluate(env_fn, max_ep_len = 1000):
-    ac = torch.load("/PATH/TO/YOUR/TRAINED/MODEL")
+    ac = torch.load("/home/zhao/Documents/cse291RoboticsML/data/ppo/ppo_s0/pyt_save/model.pt")
     # for example: ac = torch.load('../data/ppo/ppo_s0/pyt_save/model.pt')
     ac.eval()
     test_cases = np.load("test_cases.npy", allow_pickle=True)
@@ -384,7 +384,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--env', type=str, default='SapienPointMaze-v0')
     parser.add_argument('--hid', type=int, default=64) #TODO
-    parser.add_argument('--l', type=int, default=2) #TODO
+    parser.add_argument('--l', type=int, default=4) #TODO
     parser.add_argument('--gamma', type=float, default=0.99) #TODO
     parser.add_argument('--seed', '-s', type=int, default=0)
     parser.add_argument('--cpu', type=int, default=1) #TODO
@@ -395,7 +395,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # run the following function to get your score
-    # evaluate(lambda : gym.make(args.env))
+    evaluate(lambda : gym.make(args.env))
 
     mpi_fork(args.cpu)  # run parallel code with mpi
 
