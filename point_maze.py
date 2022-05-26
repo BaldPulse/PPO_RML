@@ -201,39 +201,47 @@ class PointMazeEnv(SapienEnv):
             self._scene.step()
 
         obs = self._get_obs()
+        # print(obs)
+
         
         done = np.sqrt((obs[0] ** 2 + obs[1] ** 2)) < 0.5
-        reward = 0
+        reward = -0.5
+
+        l = 1.2
+        def get_cur_xy(curqpos):
+            # print(curqpos)
+            x = int(np.floor(-curqpos[0]/l + 6))
+            y = int(np.floor(-curqpos[1]/l + 7.5))
+            return x, y
+        
+        def get_cur_loc(x,y):
+            xpos = -(x-6)*l+0.3
+            ypos = -(y-7.5)*l+0.3
+            return xpos, ypos
+        
+        x,y = get_cur_xy(obs[0:2])
+        # correct_dir = self.rmap[x,y]
+        # tx = x + correct_dir[0]
+        # ty = y + correct_dir[1]
+        # xpos, ypos = get_cur_loc(tx, ty)
+        # dir = np.array((xpos-qpos[0]), (ypos-qpos[1]))
+        # cdir = np.array(obs[3], obs[4])
+        # if np.dot(dir, cdir)/(np.linalg.norm(dir)) >0.1:
+        #     reward += 0.1  #TODO
+        
         if(np.abs(obs[0])<1.2 and np.abs(obs[1])<0.6):
             curval = -np.sqrt((obs[0] ** 2 + obs[1] ** 2))
             if(self.lastval>50):
                 self.lastval = 0
         else:
-            l = 1.2
-            def get_cur_xy(curqpos):
-                # print(curqpos)
-                x = int(np.floor(-curqpos[0]/l + 6))
-                y = int(np.floor(-curqpos[1]/l + 7.5))
-                return x, y
-            
-            def get_cur_loc(x,y):
-                xpos = -(x-6)*l+0.3
-                ypos = -(y-7.5)*l+0.3
-                return xpos, ypos
-            
-            x,y = get_cur_xy(obs[0:2])
             curval = self.rmap_static[x,y]
         if curval < self.lastval:
-            reward = -10
+            reward += -100
         elif curval > self.lastval:
-            reward = 3
+            reward += 30
         self.lastval = curval
-            # correct_dir = self.rmap[x,y]
-            # tx = x + correct_dir[0]
-            # ty = y + correct_dir[1]
-            # xpos, ypos = get_cur_loc(tx, ty)
-            # reward = (xpos-qpos[0])*obs[3] + (ypos-qpos[1])*obs[4] #TODO
-            # print(x,y, xpos, ypos, obs, reward)
+        
+        # print(x,y, xpos, ypos, obs, reward)
 
         return obs, reward, done, {}
 
