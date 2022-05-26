@@ -116,6 +116,38 @@ class PointMazeEnv(SapienEnv):
                     [0,1,0,0,0,0,0,1,0,1,0,1,0,1,0],
                     [0,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
                     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]]
+        numpymap = np.array(self.map)
+        traveled = np.zeros_like(numpymap)
+        traveled[5,7] = 1
+        traveled[6,7] = 1
+        l = []
+        r = np.zeros_like(numpymap)
+        r_dir = np.zeros((numpymap.shape[0], numpymap.shape[1],2))
+        r[5,7] = 100
+        r[6,7] = 100
+        l.append((5,7))
+        l.append((6,7))
+        while len(l)>0:
+            curx, cury = l.pop(0)
+            for (x,y) in [(curx-1, cury), (curx+1, cury), (curx, cury-1), (curx, cury+1)]:
+                if x< 0 or x > 11:
+                    continue
+                if y<0 or y>14:
+                    continue
+                if traveled[x,y] == 1:
+                    continue
+                if numpymap[x,y] < 0:
+                    r[x,y] = -10
+                else:
+                    traveled[x,y] = 1
+                    l.append((x,y))
+                    curr = r[curx, cury]
+                    rew = curr - 3
+                    r[x,y] = rew
+                    r_dir[x,y,:] = [x-curx, y-cury]
+        r += (r==0) * -10
+        self.rmap = r_dir
+
         super().__init__(control_freq=1, timestep=0.005)
         self.n = len(self.map)
         self.m = len(self.map[0])
@@ -169,26 +201,28 @@ class PointMazeEnv(SapienEnv):
         obs = self._get_obs()
         
         done = np.sqrt((obs[0] ** 2 + obs[1] ** 2)) < 0.5
-        rmap =     [[-10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10,  -10, -10],
-                    [-10,  31,  28,  25, -10, -10,  79,  76,  73, -10, -10,  49,  46,   43, -10],
-                    [-10,  34, -10, -10, -10, -10,  82, -10, -10, -10, -10,  52, -10,  -10, -10],
-                    [-10,  37, -10, -10, -10, -10,  85,  88,  91, -10, -10,  55,  52,   49, -10],
-                    [-10,  40, -10, -10, -10, -10, -10, -10,  94, -10, -10,  58, -10,  -10, -10],
-                    [-10,  43,  46,  49, -10, -10,  97, 100,  97, -10, -10,  61,  58,   55, -10],
-                    [-10,  46,  49,  52, -10,  94,  97, 100, -10,  70, -10,  64,  61,   58, -10],
-                    [-10, -10, -10,  55, -10,  91, -10,  97, -10,  73, -10,  67, -10,   61, -10],
-                    [-10,  64,  61,  58, -10,  88,  91,  94, -10,  76, -10,  70, -10,   64, -10],
-                    [-10,  67, -10, -10, -10, -10, -10,  91, -10,  79, -10,  73, -10,   67, -10],
-                    [-10,  70,  73,  76,  79,  82,  85,  88,  85,  82,  79,  76,  73,   70, -10],
-                    [-10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10, -10,  -10, -10]]
-        l = 0.6
-        def get_cur_loc(qpos):
-            x = -int(qpos[0]/l + 6)
-            y = -int(qpos[1]/l + 7.5)
+        reward = 0
+        if(np.abs(obs[0])<1.2 and np.abs(obs[1])<0.6):
+            reward = (-qpos[0])*obs[3] + (-qpos[1])*obs[4]
+        else:
+            l = 1.2
+            def get_cur_xy(curqpos):
+                x = int(np.floor(-curqpos[0]/l + 6))
+                y = int(np.floor(-curqpos[1]/l + 7.5))
+                return x, y
             
-                
+            def get_cur_loc(x,y):
+                xpos = -(x-6)*l+0.3
+                ypos = -(y-7.5)*l+0.3
+                return xpos, ypos
+            
 
-        reward = 0 #TODO
+            x,y = get_cur_xy(qpos)
+            correct_dir = self.rmap[x,y]
+            tx = x + correct_dir[0]
+            ty = y + correct_dir[1]
+            xpos, ypos = get_cur_loc(tx, ty)
+            reward = (xpos-qpos[0])*obs[3] + (ypos-qpos[1])*obs[4] #TODO
 
         return obs, reward, done, {}
 
